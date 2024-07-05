@@ -19,6 +19,9 @@ A small check to benchmark the performance of upsert queries for time-series dat
 ```
 go test -benchmem -run=^$ -bench ^BenchmarkDbs$ ts-benchmark
 
+goos: darwin
+goarch: arm64
+pkg: ts-benchmark
 BenchmarkDbs/MongoDB-compound-single-upsert-10         	       1	1394460875 ns/op	76327976 B/op	 1140562 allocs/op
 BenchmarkDbs/Postgres-native-single-10                 	       1	1376155583 ns/op	 2488368 B/op	   90038 allocs/op
 BenchmarkDbs/Postgres-timescale-single_uspert-10       	       1	1849769834 ns/op	 2480400 B/op	   89993 allocs/op
