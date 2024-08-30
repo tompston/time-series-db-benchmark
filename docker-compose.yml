@@ -1,0 +1,40 @@
+services:
+  timeseries_mongodb:
+    image: mongo:latest
+    container_name: timeseries_mongodb
+    ports:
+      - "5551:27017"  # Mapping MongoDB port to 5551 on your local machine
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test
+      MONGO_INITDB_ROOT_PASSWORD: test
+
+  timeseries_postgres:
+    image: postgres:latest
+    container_name: timeseries_postgres
+    ports:
+      - "5552:5432"  # Mapping PostgreSQL port to 5552 on your local machine
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: timeseries_benchmark
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+
+  timeseries_timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: timeseries_timescaledb
+    ports:
+      - "5553:5432"  # Mapping PostgreSQL port to 5553 on your local machine
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: timeseries_benchmark
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+
+volumes:
+  mongodb_data:
+  postgresql_data:
+  timescaledb_data:
