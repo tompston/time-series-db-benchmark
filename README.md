@@ -56,7 +56,11 @@ sudo docker volume rm $(docker volume ls -q)
 
 #### Go benchmarks
 
-_Note that these results use 30 day compression for chunks_. The empty benchmark lines are omitted.
+Notes:
+
+- timescale results use 30 day compression for chunks
+- mongodb does not use the time series collections because they can't be queried by a single row at a time
+- the empty benchmark lines are omitted.
 
 ```bash
 goos: darwin
@@ -143,9 +147,9 @@ SELECT
     pg_size_pretty(avg(pg_column_size(column_name::text))) AS avg_size,
     pg_size_pretty(max(pg_column_size(column_name::text))) AS max_size,
     pg_size_pretty(min(pg_column_size(column_name::text))) AS min_size
-FROM 
-    (SELECT 
-        your_column1 AS column_name 
+FROM
+    (SELECT
+        your_column1 AS column_name
      FROM data_objects) subquery
 GROUP BY column_name;
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -15,7 +16,6 @@ type MySQLDB struct {
 
 // mysql -u test -p -h localhost -P 5554
 /*
-
 
 SELECT
     table_schema AS `Database`,
@@ -37,6 +37,10 @@ func NewMySQLDB(name, host string, port int, username, password, dbname string) 
 	if err := conn.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping MySQL: %v", err)
 	}
+
+	conn.SetMaxOpenConns(100)
+	conn.SetMaxIdleConns(10)
+	conn.SetConnMaxLifetime(time.Hour)
 
 	return &MySQLDB{
 		name: name,
@@ -89,15 +93,14 @@ func (db *MySQLDB) Close() error {
 }
 
 func (db *MySQLDB) UpsertSingle(docs []DataObject) error {
+	query := fmt.Sprintf(`
+		INSERT INTO %v (created_at, updated_at, start_time, resolution, area, source, value)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+		updated_at = VALUES(updated_at), source = VALUES(source), value = VALUES(value)
+	`, DB_TABLE_NAME)
 
 	for _, doc := range docs {
-		query := fmt.Sprintf(`
-			INSERT INTO %v (created_at, updated_at, start_time, resolution, area, source, value)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON DUPLICATE KEY UPDATE
-			updated_at = VALUES(updated_at), source = VALUES(source), value = VALUES(value)
-		`, DB_TABLE_NAME)
-
 		_, err := db.conn.ExecContext(ctx, query,
 			doc.CreatedAt, doc.UpdatedAt, doc.StartTime, doc.Interval, doc.Area, doc.Source, doc.Value)
 		if err != nil {
@@ -135,8 +138,7 @@ func (db *MySQLDB) UpsertBulk(docs []DataObject) error {
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("UpsertBulk: %v", err)
 	}
 
@@ -177,10 +179,5 @@ func (db *MySQLDB) TableSizeInKB() (int, error) {
 		return 0, err
 	}
 
-	sizeInKB, err := strconv.Atoi(totalSize)
-	if err != nil {
-		return 0, err
-	}
-
-	return sizeInKB, nil
+	return strconv.Atoi(totalSize)
 }
