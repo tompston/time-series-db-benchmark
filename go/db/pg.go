@@ -43,7 +43,7 @@ func (db *PostgresDB) Setup() error {
                     created_at  TIMESTAMPTZ         NOT NULL,
                     updated_at  TIMESTAMPTZ         NOT NULL,
                     start_time  TIMESTAMPTZ         NOT NULL,
-                    interval    BIGINT              NOT NULL,
+                    interval    BIGINT     			NOT NULL,
                     area        TEXT         		NOT NULL,
                     source      TEXT         		NOT NULL,
                     value       DOUBLE PRECISION    NOT NULL,
@@ -72,10 +72,10 @@ func (db *PostgresDB) Setup() error {
 		}
 	}
 
-	// create compound index on the "start_time", "interval" and "area" fields
-	if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time_interval_area ON %v (start_time, interval, area)`, DB_TABLE_NAME)); err != nil {
-		return fmt.Errorf("failed to create unique compound index: %v", err)
-	}
+	// // create compound index on the "start_time", "interval" and "area" fields
+	// if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time_interval_area ON %v (start_time, interval, area)`, DB_TABLE_NAME)); err != nil {
+	// 	return fmt.Errorf("failed to create unique compound index: %v", err)
+	// }
 
 	if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time ON %v (start_time)`, DB_TABLE_NAME)); err != nil {
 		return fmt.Errorf("failed to create index: %v", err)

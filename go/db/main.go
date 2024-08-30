@@ -25,6 +25,7 @@ const (
 	PORT_MONGO     = 5551
 	PORT_POSTGRES  = 5552
 	PORT_TIMESCALE = 5553
+	PORT_MYSQL     = 5554
 )
 
 type DataObject struct {

@@ -135,4 +135,36 @@ SELECT
     pg_size_pretty(after_compression_total_bytes) as after
  FROM hypertable_compression_stats('public.data_objects');
 
+
+
+
+SELECT
+    column_name,
+    pg_size_pretty(avg(pg_column_size(column_name::text))) AS avg_size,
+    pg_size_pretty(max(pg_column_size(column_name::text))) AS max_size,
+    pg_size_pretty(min(pg_column_size(column_name::text))) AS min_size
+FROM 
+    (SELECT 
+        your_column1 AS column_name 
+     FROM data_objects) subquery
+GROUP BY column_name;
+
+
+SELECT
+    timeseries_benchmark,
+    pg_size_pretty(table_size) AS table_size,
+    pg_size_pretty(indexes_size) AS indexes_size,
+    pg_size_pretty(total_size) AS total_size
+FROM (
+    SELECT
+        timeseries_benchmark,
+        pg_table_size(timeseries_benchmark) AS table_size,
+        pg_indexes_size(timeseries_benchmark) AS indexes_size,
+        pg_total_relation_size(timeseries_benchmark) AS total_size
+    FROM (
+        SELECT ('"' || table_schema || '"."' || timeseries_benchmark || '"') AS timeseries_benchmark
+        FROM information_schema.tables
+    ) AS all_tables
+    ORDER BY total_size DESC
+) AS pretty_sizes;
  -->

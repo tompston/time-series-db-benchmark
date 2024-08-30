@@ -24,16 +24,23 @@ func run() error {
 	// }
 	// defer pgNative.Close()
 
-	pgTimescale, err := db.NewPostgresDB("pg-timescale", "localhost", db.PORT_TIMESCALE, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME, true)
+	// pgTimescale, err := db.NewPostgresDB("pg-timescale", "localhost", db.PORT_TIMESCALE, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME, true)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer pgTimescale.Close()
+
+	dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
 	if err != nil {
 		return err
 	}
-	defer pgTimescale.Close()
+	defer dbMysql.Close()
 
 	var dbs []db.Database
 	// dbs = append(dbs, mongo)
 	// dbs = append(dbs, pgNative)
-	dbs = append(dbs, pgTimescale)
+	// dbs = append(dbs, pgTimescale)
+	dbs = append(dbs, dbMysql)
 
 	for _, dbInstance := range dbs {
 		if err := dbInstance.Setup(); err != nil {

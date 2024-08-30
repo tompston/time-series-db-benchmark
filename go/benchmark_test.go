@@ -26,6 +26,12 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer pgTimescale.Close()
 
+	dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
+	if err != nil {
+		b.Fatalf("Error: %v", err)
+	}
+	defer dbMysql.Close()
+
 	NUM_OBJECTS := 10_000
 
 	fake := db.GenerateFakeData(NUM_OBJECTS)
@@ -34,6 +40,7 @@ func BenchmarkTimeseries(b *testing.B) {
 	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
 	dbs = append(dbs, pgTimescale)
+	dbs = append(dbs, dbMysql)
 
 	// Initialize all of the dbs only once
 	for _, dbInstance := range dbs {

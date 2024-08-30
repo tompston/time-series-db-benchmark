@@ -34,7 +34,21 @@ services:
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
 
+  timeseries_mysql:
+    image: mysql:latest
+    container_name: timeseries_mysql
+    ports:
+      - "5554:3306"  # Mapping MySQL port to 5554 on your local machine
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: timeseries_benchmark
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+
 volumes:
   mongodb_data:
   postgresql_data:
   timescaledb_data:
+  mysql_data:
