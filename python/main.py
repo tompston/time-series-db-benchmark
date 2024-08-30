@@ -164,10 +164,6 @@ class PostgresDb:
     def select_with_limit(self, limit: int):
         self.cursor.execute(f"SELECT * FROM {DB_TABLE_NAME} ORDER BY start_time DESC LIMIT %s", (limit,))
         rows = self.cursor.fetchall()
-        # if len(rows) is not limit:
-        #     raise ValueError(f"Expected {limit} rows, but got {len(rows)}")
-        # print(len(rows))
-        
         return rows
     
 

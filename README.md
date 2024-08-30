@@ -109,6 +109,7 @@ pg_timesale.select_with_limit        10.31 ms
   - To get the table size of the timescaledb, the default `SELECT pg_size_pretty(pg_total_relation_size($1)) AS total_size;` query does not return the correct. I found this out when the table size returned from this query did not change once i benchmarked the size on varying number of rows (1k -> 10k).
   - The compression of timescale does not get applied immediately after the inserts. That's why we need to trigger it manually.
   - possible cause for concern (not sure if this is fixed) [compress_chunk() blocks other queries on the table for a long time](https://github.com/timescale/timescaledb/issues/2732)
+  - adjustments based on interval blog post[link](https://mail-dpant.medium.com/my-experience-with-timescaledb-compression-68405425827)
 
 <!--
 source ~/python-envs/sant/bin/activate
