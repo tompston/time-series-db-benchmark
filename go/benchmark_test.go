@@ -84,7 +84,7 @@ func BenchmarkTimeseries(b *testing.B) {
 		})
 	}
 
-	sleepTime := 30 * time.Second
+	sleepTime := 60 * time.Second
 	b.Logf("Sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
 	time.Sleep(sleepTime)
 
