@@ -89,15 +89,13 @@ func (db *PostgresDB) Close() error {
 }
 
 func (db *PostgresDB) UpsertSingle(docs []DataObject) error {
+	query := `
+		INSERT INTO ` + DB_TABLE_NAME + ` (created_at, updated_at, start_time, interval, area, source, value)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (start_time, interval, area) DO UPDATE
+		SET updated_at = $2, source = $6, value = $7`
+
 	for _, doc := range docs {
-
-		query := `
-			INSERT INTO ` + DB_TABLE_NAME + ` (created_at, updated_at, start_time, interval, area, source, value)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT (start_time, interval, area) DO UPDATE
-			SET updated_at = $2, source = $6, value = $7
-		`
-
 		if _, err := db.conn.Exec(ctx, query,
 			doc.CreatedAt, doc.UpdatedAt, doc.StartTime, doc.Interval, doc.Area, doc.Source, doc.Value); err != nil {
 			return fmt.Errorf("UpsertSingle: %v", err)
@@ -108,14 +106,13 @@ func (db *PostgresDB) UpsertSingle(docs []DataObject) error {
 }
 
 func (db *PostgresDB) UpsertBulk(docs []DataObject) error {
-
-	batch := &pgx.Batch{}
 	query := `
 		INSERT INTO ` + DB_TABLE_NAME + ` (created_at, updated_at, start_time, interval, area, source, value)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (start_time, interval, area) DO UPDATE
-		SET updated_at = $2, source = $6, value = $7
-	`
+		SET updated_at = $2, source = $6, value = $7`
+
+	batch := &pgx.Batch{}
 
 	for _, doc := range docs {
 		batch.Queue(query,

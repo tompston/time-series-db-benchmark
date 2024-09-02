@@ -75,13 +75,8 @@ func (db *MySQLDB) Setup() error {
 		return err
 	}
 
-	// _, err = db.conn.ExecContext(ctx, fmt.Sprintf(`CREATE INDEX idx_start_time_resolution_area ON %v (start_time, resolution, area)`, DB_TABLE_NAME))
-	// if err != nil {
-	// 	return fmt.Errorf("failed to create unique compound index: %v", err)
-	// }
-
-	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(`CREATE INDEX idx_start_time ON %v (start_time)`, DB_TABLE_NAME))
-	if err != nil {
+	if _, err := db.conn.ExecContext(
+		ctx, fmt.Sprintf(`CREATE INDEX idx_start_time ON %v (start_time)`, DB_TABLE_NAME)); err != nil {
 		return fmt.Errorf("failed to create index: %v", err)
 	}
 
