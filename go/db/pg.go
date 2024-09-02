@@ -93,7 +93,7 @@ func (db *PostgresDB) UpsertSingle(docs []DataObject) error {
 		INSERT INTO ` + DB_TABLE_NAME + ` (created_at, updated_at, start_time, interval, area, source, value)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (start_time, interval, area) DO UPDATE
-		SET updated_at = $2, source = $6, value = $7`
+		SET updated_at = EXCLUDED.updated_at, source = EXCLUDED.source, value = EXCLUDED.value`
 
 	for _, doc := range docs {
 		if _, err := db.conn.Exec(ctx, query,

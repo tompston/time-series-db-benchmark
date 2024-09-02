@@ -50,6 +50,10 @@ class PostgresDb:
         rows = self.cursor.fetchall()
         return rows
     
+    def find_one(self):
+        self.cursor.execute(f"SELECT * FROM {DB_TABLE_NAME} WHERE area = 'lv' AND source = 'source-of-data' AND start_time = %s", (BASE_TIME,))
+        return self.cursor.fetchone()
+    
 
 class MongoDB:
     def __init__(self, uri: str):
@@ -62,6 +66,14 @@ class MongoDB:
         coll = self.client[DB_NAME][DB_TABLE_NAME]
         rows = coll.find().sort("start_time", -1).limit(limit)
         return rows
+    
+    def find_one(self):
+        coll = self.client[DB_NAME][DB_TABLE_NAME]
+        return coll.find_one({
+            "area": "lv",
+            "source": "source-of-data",
+            "start_time": BASE_TIME
+        })
             
 
 def benchmark_function(runner, func, *args, **kwargs):
@@ -101,6 +113,10 @@ if __name__ == "__main__":
     measure_time("pg_timesale.select_with_limit", pg_timesale.select_with_limit, NUM_ROWS)
     measure_time("pg_native.select_with_limit", pg_native.select_with_limit, NUM_ROWS)
     measure_time("mongo.select_with_limit", mongo.select_with_limit, NUM_ROWS)
+    print("-----")
+    measure_time("pg_timesale.find_one", pg_timesale.find_one)
+    measure_time("pg_native.find_one", pg_native.find_one)
+    measure_time("mongo.find_one", mongo.find_one)
         
     mongo.close()
     pg_native.close()
