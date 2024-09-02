@@ -42,7 +42,7 @@ cd go
 go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1
 # run the python script to test read speed
 cd python
-python3 main.py
+python3 read.py
 
 # reset docker (uninstall every image and container)
 sudo docker stop $(sudo docker ps -aq)
@@ -175,4 +175,16 @@ FROM (
     ) AS all_tables
     ORDER BY total_size DESC
 ) AS pretty_sizes;
+
+
+use timeseries_benchmark
+db.data_objects.find({}).explain("executionStats").executionStats
+db.data_objects.find({}).explain("executionStats").executionStats.executionTimeMillis
+
+
+psql -U test -d timeseries_benchmark -W
+EXPLAIN ANALYZE SELECT * FROM data_objects;
+
+go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
+
  -->

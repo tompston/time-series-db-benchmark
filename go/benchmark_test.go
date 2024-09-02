@@ -26,21 +26,20 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer pgTimescale.Close()
 
-	dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
-	if err != nil {
-		b.Fatalf("Error: %v", err)
-	}
-	defer dbMysql.Close()
+	// dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
+	// if err != nil {
+	// 	b.Fatalf(err.Error())
+	// }
+	// defer dbMysql.Close()
 
-	NUM_OBJECTS := 10_000
-
+	NUM_OBJECTS := 1_000_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
 	var dbs []db.Database
 	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
 	dbs = append(dbs, pgTimescale)
-	dbs = append(dbs, dbMysql)
+	// dbs = append(dbs, dbMysql)
 
 	// Initialize all of the dbs only once
 	for _, dbInstance := range dbs {
@@ -50,10 +49,22 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 
 	for _, dbInstance := range dbs {
-		b.Run(fmt.Sprintf("%v-upsert-single", dbInstance.GetName()), func(b *testing.B) {
+		b.Run(fmt.Sprintf("%v-insert-%v-rows", dbInstance.GetName(), NUM_OBJECTS), func(b *testing.B) {
+			b.ResetTimer()
+			if err := dbInstance.UpsertSingle(fake); err != nil {
+				b.Fatalf("Error: %v", err)
+			}
+		})
+	}
+
+	UPDATE_AND_READ_LIMIT := 2_000
+	fakeUpdateChunk := fake[:UPDATE_AND_READ_LIMIT]
+
+	for _, dbInstance := range dbs {
+		b.Run(fmt.Sprintf("%v-upsert-single-%v-rows", dbInstance.GetName(), UPDATE_AND_READ_LIMIT), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := dbInstance.UpsertSingle(fake); err != nil {
+				if err := dbInstance.UpsertSingle(fakeUpdateChunk); err != nil {
 					b.Fatalf("Error: %v", err)
 				}
 			}
@@ -61,10 +72,10 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 
 	for _, dbInstance := range dbs {
-		b.Run(fmt.Sprintf("%v-upsert-bulk", dbInstance.GetName()), func(b *testing.B) {
+		b.Run(fmt.Sprintf("%v-upsert-bulk-%v-rows", dbInstance.GetName(), UPDATE_AND_READ_LIMIT), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := dbInstance.UpsertBulk(fake); err != nil {
+				if err := dbInstance.UpsertBulk(fakeUpdateChunk); err != nil {
 					b.Fatalf("Error: %v", err)
 				}
 			}
@@ -76,16 +87,15 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 
 	for _, dbInstance := range dbs {
-		const READ_LIMIT = 1000
-		b.Run(fmt.Sprintf("%v-get-%v", dbInstance.GetName(), READ_LIMIT), func(b *testing.B) {
+		b.Run(fmt.Sprintf("%v-get-%v", dbInstance.GetName(), UPDATE_AND_READ_LIMIT), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				docs, err := dbInstance.GetOrderedWithLimit(READ_LIMIT)
+				docs, err := dbInstance.GetOrderedWithLimit(UPDATE_AND_READ_LIMIT)
 				if err != nil {
 					b.Fatalf("Error: %v", err)
 				}
-				if len(docs) != READ_LIMIT {
-					b.Fatalf("Expected %v docs, got %v", READ_LIMIT, len(docs))
+				if len(docs) != UPDATE_AND_READ_LIMIT {
+					b.Fatalf("Expected %v docs, got %v", UPDATE_AND_READ_LIMIT, len(docs))
 				}
 			}
 		})
