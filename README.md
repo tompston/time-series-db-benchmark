@@ -187,4 +187,8 @@ EXPLAIN ANALYZE SELECT * FROM data_objects;
 
 go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
 
+
+go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -count=1 -timeout=0 | gotestfmt
+
  -->

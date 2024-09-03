@@ -96,7 +96,7 @@ func (db *MySQLDB) UpsertSingle(docs []DataObject) error {
 	`, DB_TABLE_NAME)
 
 	for _, doc := range docs {
-		_, err := db.conn.ExecContext(ctx, query,
+		_, err := db.conn.Exec(query,
 			doc.CreatedAt, doc.UpdatedAt, doc.StartTime, doc.Interval, doc.Area, doc.Source, doc.Value)
 		if err != nil {
 			return fmt.Errorf("UpsertSingle: %v", err)
@@ -125,7 +125,7 @@ func (db *MySQLDB) UpsertBulk(docs []DataObject) error {
 	defer stmt.Close()
 
 	for _, doc := range docs {
-		_, err = stmt.ExecContext(ctx,
+		_, err = stmt.Exec(
 			doc.CreatedAt, doc.UpdatedAt, doc.StartTime, doc.Interval, doc.Area, doc.Source, doc.Value)
 		if err != nil {
 			tx.Rollback()

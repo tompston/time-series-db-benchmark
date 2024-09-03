@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"math/rand/v2"
+	"math/rand"
 	"time"
 )
 

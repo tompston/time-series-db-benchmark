@@ -61,15 +61,12 @@ func (db *MongoDB) Setup() error {
 	}
 
 	// Create compound index on the "start_time", "interval" and "area" fields
-	indexModel := mongo.IndexModel{
+	if _, err := db.coll.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "start_time", Value: -1},
 			{Key: "interval", Value: -1},
 			{Key: "area", Value: -1},
-		},
-	}
-
-	if _, err := db.coll.Indexes().CreateOne(ctx, indexModel); err != nil {
+		}}); err != nil {
 		return err
 	}
 

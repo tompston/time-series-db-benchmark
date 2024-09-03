@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"testing"
-	"time"
 	"timeseries-benchmark/db"
 )
 
@@ -26,20 +25,20 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer pgTimescale.Close()
 
-	// dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
-	// if err != nil {
-	// 	b.Fatalf(err.Error())
-	// }
-	// defer dbMysql.Close()
+	dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
+	if err != nil {
+		b.Fatalf(err.Error())
+	}
+	defer dbMysql.Close()
 
-	NUM_OBJECTS := 1_000_000
+	NUM_OBJECTS := 500_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
 	var dbs []db.Database
 	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
 	dbs = append(dbs, pgTimescale)
-	// dbs = append(dbs, dbMysql)
+	dbs = append(dbs, dbMysql)
 
 	// Initialize all of the dbs only once
 	for _, dbInstance := range dbs {
@@ -101,9 +100,9 @@ func BenchmarkTimeseries(b *testing.B) {
 		})
 	}
 
-	sleepTime := 60 * time.Second
-	b.Logf("Sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
-	time.Sleep(sleepTime)
+	// sleepTime := 60 * time.Second
+	// b.Logf("Sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
+	// time.Sleep(sleepTime)
 
 	b.Logf(" * storage size for %v rows", NUM_OBJECTS)
 	for _, dbInstance := range dbs {

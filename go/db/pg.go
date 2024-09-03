@@ -54,7 +54,7 @@ func (db *PostgresDB) Setup() error {
 	}
 
 	if db.usingTimescale {
-		if _, err := db.conn.Exec(ctx, fmt.Sprintf(`SELECT create_hypertable('%v', by_range('start_time', INTERVAL '30 days'));`, DB_TABLE_NAME)); err != nil {
+		if _, err := db.conn.Exec(ctx, fmt.Sprintf(`SELECT create_hypertable('%v', by_range('start_time', INTERVAL '60 days'));`, DB_TABLE_NAME)); err != nil {
 			return err
 		}
 
