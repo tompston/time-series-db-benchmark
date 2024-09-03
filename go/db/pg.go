@@ -60,8 +60,7 @@ func (db *PostgresDB) Setup() error {
 		if _, err := db.conn.Exec(ctx, fmt.Sprintf(`
 		ALTER TABLE %v 
 		SET (
-				timescaledb.compress, 
-				timescaledb.compress_orderby='start_time'
+				timescaledb.compress
 		);
 		`, DB_TABLE_NAME)); err != nil {
 			return err
