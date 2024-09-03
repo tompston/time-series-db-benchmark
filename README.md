@@ -39,7 +39,7 @@ Upserts are done using an `start_time`, `interval` and `area` filter.
 sudo docker compose up -d
 # run the go benchmarks
 cd go
-go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1
+go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
 # run the python script to test read speed
 cd python
 python3 read.py
