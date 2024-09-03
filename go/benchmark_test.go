@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 	"timeseries-benchmark/db"
 )
 
@@ -31,9 +32,9 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer dbMysql.Close()
 
-	// NUM_OBJECTS := 500_000
-	NUM_OBJECTS := 3_000
-	UPDATE_AND_READ_LIMIT := 1_000
+	NUM_OBJECTS := 500_000
+	// NUM_OBJECTS := 3_000
+	UPDATE_AND_READ_LIMIT := 4_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
 	var dbs []db.Database
@@ -101,9 +102,9 @@ func BenchmarkTimeseries(b *testing.B) {
 		})
 	}
 
-	// sleepTime := 60 * time.Second
-	// b.Logf("Sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
-	// time.Sleep(sleepTime)
+	sleepTime := 60 * time.Second
+	b.Logf("sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
+	time.Sleep(sleepTime)
 
 	b.Logf(" * storage size for %v rows", NUM_OBJECTS)
 	for _, dbInstance := range dbs {

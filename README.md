@@ -108,12 +108,16 @@ pg_timesale.select_with_limit        10.31 ms
 ### Debug commands
 
 ```bash
-# see size of table in timescale
+# see size of table in timescale + timing of query
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(hypertable_size('data_objects')) AS total_size;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects;"
-# see size of table in postgres
+# see size of table in postgres + timing of query
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(pg_total_relation_size('data_objects')) AS total_size;"
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects;"
+# see timing of mongodb query
+docker exec timeseries_mongodb mongosh --username test --password test --eval '
+    db = db.getSiblingDB("timeseries_benchmark");
+    db.data_objects.find({}).explain("executionStats").executionStats.executionTimeMillis;'
 ```
 
 ### Gotchas
