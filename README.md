@@ -134,6 +134,8 @@ docker exec timeseries_mongodb mongosh --username test --password test --eval '
   - The compression of timescale does not get applied immediately after the inserts. That's why we need to trigger it manually.
   - possible cause for concern (not sure if this is fixed) [compress_chunk() blocks other queries on the table for a long time](https://github.com/timescale/timescaledb/issues/2732)
   - adjustments based on interval blog post[link](https://mail-dpant.medium.com/my-experience-with-timescaledb-compression-68405425827)
+- mysql
+  - Use `DATETIME` instead of `TIMESTAMP` because `TIMESTAMP` has a range of `1970-2038` and `DATETIME` has a range of `1000-9999` (Error 1292 (22007): Incorrect datetime value: '2038-01-19 04:00:00' for column 'start_time' at row 1).
 
 <!--
 source ~/python-envs/sant/bin/activate

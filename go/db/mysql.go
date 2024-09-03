@@ -61,9 +61,9 @@ func (db *MySQLDB) Setup() error {
 
 	_, err = db.conn.ExecContext(ctx, fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %v (
-			created_at  TIMESTAMP 			NOT NULL,
-			updated_at  TIMESTAMP 			NOT NULL,
-			start_time  TIMESTAMP 			NOT NULL,
+			created_at  DATETIME 			NOT NULL,
+			updated_at  DATETIME 			NOT NULL,
+			start_time  DATETIME 			NOT NULL,
 			resolution  BIGINT    			NOT NULL,
 			area        VARCHAR(50)      	NOT NULL,
 			source      VARCHAR(50)      	NOT NULL,

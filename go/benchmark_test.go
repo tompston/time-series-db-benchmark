@@ -38,10 +38,10 @@ func BenchmarkTimeseries(b *testing.B) {
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
 	var dbs []db.Database
+	dbs = append(dbs, dbMysql)
 	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
 	dbs = append(dbs, pgTimescale)
-	dbs = append(dbs, dbMysql)
 
 	// Initialize all of the dbs only once
 	for _, dbInstance := range dbs {
