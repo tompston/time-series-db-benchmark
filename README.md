@@ -64,30 +64,35 @@ Notes:
 - The mysql version uses a field called `resoulution` instead of `interval` because `interval` is a reserved keyword in mysql.
 
 ```bash
-goos: darwin
-goarch: arm64
-pkg: timeseries-benchmark
-BenchmarkTimeseries
-BenchmarkTimeseries/mongodb-upsert-single-10                   1        3580940583 ns/op        81749416 B/op    1131013 allocs/op
-BenchmarkTimeseries/pg-ntv-upsert-single-10                    1        3293623834 ns/op         4003696 B/op     130030 allocs/op
-BenchmarkTimeseries/pg-tsc-upsert-single-10                    1        4055551458 ns/op         4013808 B/op     130124 allocs/op
-BenchmarkTimeseries/mysql-upsert-single-10                     1        15338941584 ns/op       10812808 B/op     190112 allocs/op
+BenchmarkTimeseries/mysql-insert-500000-rows-10                        1        706494051417 ns/op      540666584 B/op   9506739 allocs/op
+BenchmarkTimeseries/mongodb-insert-500000-rows-10                      1        211530664083 ns/op      4064646056 B/op 56505957 allocs/op
+BenchmarkTimeseries/pg-ntv-insert-500000-rows-10                       1        181912643125 ns/op      200180400 B/op   6501848 allocs/op
+BenchmarkTimeseries/pg-tsc-insert-500000-rows-10                       1        219917379792 ns/op      200208384 B/op   6502129 allocs/op
 
-BenchmarkTimeseries/mongodb-upsert-bulk-10                     3         388987458 ns/op        49942456 B/op     440148 allocs/op
-BenchmarkTimeseries/pg-ntv-upsert-bulk-10                      8         175830583 ns/op        14742259 B/op     130061 allocs/op
-BenchmarkTimeseries/pg-tsc-upsert-bulk-10                      3         500025292 ns/op        14740981 B/op     130049 allocs/op
-BenchmarkTimeseries/mysql-upsert-bulk-10                       1        1894484167 ns/op         6322584 B/op     140023 allocs/op
+BenchmarkTimeseries/mysql-upsert-single-4000-rows-10                   1        1383154125 ns/op         4321896 B/op      76004 allocs/op
+BenchmarkTimeseries/mongodb-upsert-single-4000-rows-10                 1        1045744583 ns/op        31045960 B/op     416041 allocs/op
+BenchmarkTimeseries/pg-ntv-upsert-single-4000-rows-10                  1        1776864291 ns/op         1600000 B/op      52000 allocs/op
+BenchmarkTimeseries/pg-tsc-upsert-single-4000-rows-10                  1        2131020208 ns/op         1600000 B/op      52000 allocs/op
 
-BenchmarkTimeseries/mongodb-get-1000-10                      336           3478583 ns/op         1170932 B/op      20176 allocs/op
-BenchmarkTimeseries/pg-ntv-get-1000-10                      1404            812259 ns/op          658326 B/op       4026 allocs/op
-BenchmarkTimeseries/pg-tsc-get-1000-10                      1192           1009948 ns/op          658327 B/op       4026 allocs/op
-BenchmarkTimeseries/mysql-get-1000-10                        890           1361952 ns/op          682950 B/op      10044 allocs/op
-    benchmark_test.go:95: Sleeping for 60 sec to get the correct mongodb collection storage size
-    benchmark_test.go:98:  * storage size for 10000 rows
-    benchmark_test.go:105:      - mongodb: 1664 KB
-    benchmark_test.go:105:      - pg-ntv: 11264 KB
-    benchmark_test.go:105:      - pg-tsc: 1448 KB
-    benchmark_test.go:105:      - mysql: 1792 KB
+BenchmarkTimeseries/mysql-upsert-bulk-4000-rows-10                     2         709444396 ns/op         2529756 B/op      56021 allocs/op
+BenchmarkTimeseries/mongodb-upsert-bulk-4000-rows-10                   7         158134631 ns/op        15426505 B/op     176112 allocs/op
+BenchmarkTimeseries/pg-ntv-upsert-bulk-4000-rows-10                   19          68316186 ns/op         5768675 B/op      52042 allocs/op
+BenchmarkTimeseries/pg-tsc-upsert-bulk-4000-rows-10                    6         199995639 ns/op         5768672 B/op      52042 allocs/op
+
+BenchmarkTimeseries/mysql-get-4000-10                                387           3105753 ns/op         3031493 B/op      40050 allocs/op
+BenchmarkTimeseries/mongodb-get-4000-10                              102          12421009 ns/op         5025492 B/op      80200 allocs/op
+BenchmarkTimeseries/pg-ntv-get-4000-10                               336           3548450 ns/op         2934926 B/op      16034 allocs/op
+BenchmarkTimeseries/pg-tsc-get-4000-10                               248           4571874 ns/op         2934839 B/op      16033 allocs/op
+
+    benchmark_test.go:106: sleeping for 60 sec to get the correct mongodb collection storage size
+    benchmark_test.go:109:  * storage size for 500000 rows
+    benchmark_test.go:116:      - mysql:    45152 KB
+    benchmark_test.go:116:      - mongodb:  41584 KB
+    benchmark_test.go:116:      - pg-ntv:   83696 KB
+    benchmark_test.go:116:      - pg-tsc:   44544 KB
+
+PASS
+ok      timeseries-benchmark    1403.829s
 ```
 
 - for single upserts, there is not a significant difference between the databases.
