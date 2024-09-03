@@ -105,9 +105,13 @@ ok      timeseries-benchmark    1403.829s
 For some reason the python read speed benchmarks have the opposite result. Not sure why. Note that the python script is ran once, so the mean over x runs is not calculated.
 
 ```bash
-mongo.select_with_limit               0.10 ms
-pg_native.select_with_limit           4.60 ms
-pg_timesale.select_with_limit        10.31 ms
+pg_timesale.select_with_limit       116.28 ms
+pg_native.select_with_limit           3.81 ms
+mongo.select_with_limit               0.11 ms
+-----
+pg_timesale.find_one                  3.97 ms
+pg_native.find_one                    0.63 ms
+mongo.find_one                        9.82 ms
 ```
 
 ### Debug commands
@@ -129,7 +133,7 @@ docker exec timeseries_mongodb mongosh --username test --password test --eval '
 
 - mongodb
   - The statistics about the mongodb collection seem to be incorrect just after inserting the data. The `totalSize` value updates after some time, once the records are inserted. This is why there is a 30sec sleep in the script.
-  - **The displayed storage size may not be correct.** While running the benchmarks, i found that in some cases the displayed storage of the mongodb collection did not increase when the number of records increased by 10x. So i don't think the displayed storage size can be trusted fully. 
+  - **The displayed storage size may not be correct.** While running the benchmarks, i found that in some cases the displayed storage of the mongodb collection did not increase when the number of records increased by 10x. So i don't think the displayed storage size can be trusted fully.
 - timescale
   - the size of the chunk matters. From my understanding the default is 7 days. In this benchmark we save 1 hour resolution data, for which `30 days` otperforms compression of `7 days` with a big margin.
     - 7 days -> 4864 kb
@@ -141,6 +145,462 @@ docker exec timeseries_mongodb mongosh --username test --password test --eval '
   - adjustments based on interval blog post[link](https://mail-dpant.medium.com/my-experience-with-timescaledb-compression-68405425827)
 - mysql
   - Use `DATETIME` instead of `TIMESTAMP` because `TIMESTAMP` has a range of `1970-2038` and `DATETIME` has a range of `1000-9999` (Error 1292 (22007): Incorrect datetime value: '2038-01-19 04:00:00' for column 'start_time' at row 1).
+
+## Manual EXPLAIN ANALYZE
+
+#### Timescale
+
+```bash
+# docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.42..427.37 rows=10000 width=58) (actual time=0.091..2.545 rows=10000 loops=1)
+   ->  Index Scan Backward using idx_start_time on data_objects  (cost=0.42..21347.89 rows=500000 width=58) (actual time=0.088..1.944 rows=10000 loops=1)
+ Planning Time: 0.550 ms
+ Execution Time: 2.888 ms
+(4 rows)
+
+# docker exec timeseries_mongodb mongosh --username test --password test --eval '
+#   db = db.getSiblingDB("timeseries_benchmark");
+#   db.data_objects.find({}).sort({ start_time: -1 }).limit(10000).explain("executionStats").executionStats.executionTimeMillis;'
+18
+
+
+
+# docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
+                     ->  Seq Scan on compress_hyper_68_3040_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2691_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2691_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3039_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2690_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2690_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3038_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2689_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2689_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3037_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2688_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2688_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3036_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2687_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2687_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3035_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2686_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2686_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3034_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2685_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2685_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3033_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2684_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2684_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3032_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2683_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2683_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3031_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2682_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2682_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3030_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2681_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2681_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3029_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2680_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2680_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3028_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2679_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2679_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3027_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2678_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2678_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3026_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2677_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2677_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3025_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2676_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2676_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3024_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2675_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2675_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3023_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2674_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2674_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3022_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2673_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2673_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3021_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2672_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2672_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3020_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2671_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2671_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3019_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2670_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2670_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3018_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2669_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2669_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3017_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2668_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2668_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3016_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2667_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2667_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3015_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2666_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2666_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3014_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2665_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2665_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3013_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2664_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2664_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3012_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2663_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2663_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3011_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2662_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2662_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3010_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2661_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2661_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3009_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2660_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2660_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3008_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2659_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2659_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3007_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2658_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2658_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3006_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2657_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2657_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3005_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2656_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2656_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3004_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2655_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2655_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3003_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2654_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2654_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3002_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2653_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2653_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3001_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2652_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2652_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_3000_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2651_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2651_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2999_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2650_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2650_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2998_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2649_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2649_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2997_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2648_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2648_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2996_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2647_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2647_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2995_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2646_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2646_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2994_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2645_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2645_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2993_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2644_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2644_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2992_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2643_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2643_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2991_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2642_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2642_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2990_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2641_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2641_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2989_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2640_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2640_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2988_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2639_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2639_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2987_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2638_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2638_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2986_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2637_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2637_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2985_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2636_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2636_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2984_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2635_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2635_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2983_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2634_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2634_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2982_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2633_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2633_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2981_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2632_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2632_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2980_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2631_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2631_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2979_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2630_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2630_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2978_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2629_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2629_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2977_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2628_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2628_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2976_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2627_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2627_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2975_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2626_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2626_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2974_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2625_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2625_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2973_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2624_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2624_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2972_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2623_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2623_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2971_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2622_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2622_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2970_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2621_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2621_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2969_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2620_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2620_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2968_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2619_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2619_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2967_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2618_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2618_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2966_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2617_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2617_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2965_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2616_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2616_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2964_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2615_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2615_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2963_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2614_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2614_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2962_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2613_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2613_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2961_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2612_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2612_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2960_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2611_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2611_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2959_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2610_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2610_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2958_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2609_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2609_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2957_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2608_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2608_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2956_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2607_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2607_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2955_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2606_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2606_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2954_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2605_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2605_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2953_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2604_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2604_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2952_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2603_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2603_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2951_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2602_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2602_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2950_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2601_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2601_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2949_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2600_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2600_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2948_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2599_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2599_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2947_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2598_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2598_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2946_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2597_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2597_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2945_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2596_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2596_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2944_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2595_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2595_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2943_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2594_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2594_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2942_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2593_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2593_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2941_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2592_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2592_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2940_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2591_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2591_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2939_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2590_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2590_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2938_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2589_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2589_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2937_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2588_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2588_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2936_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2587_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2587_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2935_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2586_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2586_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2934_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_67_2585_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_67_2585_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_68_2933_chunk  (cost=0.00..12.50 rows=250 width=220) (never executed)
+ Planning Time: 182.599 ms
+ Execution Time: 10.471 ms
+(1405 rows)
+
+```
 
 <!--
 source ~/python-envs/sant/bin/activate
