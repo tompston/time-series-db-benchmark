@@ -31,7 +31,9 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer dbMysql.Close()
 
-	NUM_OBJECTS := 500_000
+	// NUM_OBJECTS := 500_000
+	NUM_OBJECTS := 3_000
+	UPDATE_AND_READ_LIMIT := 1_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
 	var dbs []db.Database
@@ -56,7 +58,6 @@ func BenchmarkTimeseries(b *testing.B) {
 		})
 	}
 
-	UPDATE_AND_READ_LIMIT := 2_000
 	fakeUpdateChunk := fake[:UPDATE_AND_READ_LIMIT]
 
 	for _, dbInstance := range dbs {

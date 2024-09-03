@@ -58,7 +58,7 @@ sudo docker volume rm $(docker volume ls -q)
 
 Notes:
 
-- timescale results use 30 day compression for chunks
+- the default value of chunck compression in timescale is changed to one which gives better compression
 - mongodb does not use the time series collections because they can't be queried by a single row at a time
 - the empty benchmark lines are omitted.
 - The mysql version uses a field called `resoulution` instead of `interval` because `interval` is a reserved keyword in mysql.
@@ -105,10 +105,22 @@ pg_native.select_with_limit           4.60 ms
 pg_timesale.select_with_limit        10.31 ms
 ```
 
+### Debug commands
+
+```bash
+# see size of table in timescale
+docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(hypertable_size('data_objects')) AS total_size;"
+docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects;"
+# see size of table in postgres
+docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(pg_total_relation_size('data_objects')) AS total_size;"
+docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects;"
+```
+
 ### Gotchas
 
 - mongodb
   - The statistics about the mongodb collection seem to be incorrect just after inserting the data. The `totalSize` value updates after some time, once the records are inserted. This is why there is a 30sec sleep in the script.
+  - **The displayed storage size may not be correct.** While running the benchmarks, i found that in some cases the displayed storage of the mongodb collection did not increase when the number of records increased by 10x. So i don't think the displayed storage size can be trusted fully. 
 - timescale
   - the size of the chunk matters. From my understanding the default is 7 days. In this benchmark we save 1 hour resolution data, for which `30 days` otperforms compression of `7 days` with a big margin.
     - 7 days -> 4864 kb
@@ -145,38 +157,6 @@ SELECT
 
 
 
-
-SELECT
-    column_name,
-    pg_size_pretty(avg(pg_column_size(column_name::text))) AS avg_size,
-    pg_size_pretty(max(pg_column_size(column_name::text))) AS max_size,
-    pg_size_pretty(min(pg_column_size(column_name::text))) AS min_size
-FROM
-    (SELECT
-        your_column1 AS column_name
-     FROM data_objects) subquery
-GROUP BY column_name;
-
-
-SELECT
-    timeseries_benchmark,
-    pg_size_pretty(table_size) AS table_size,
-    pg_size_pretty(indexes_size) AS indexes_size,
-    pg_size_pretty(total_size) AS total_size
-FROM (
-    SELECT
-        timeseries_benchmark,
-        pg_table_size(timeseries_benchmark) AS table_size,
-        pg_indexes_size(timeseries_benchmark) AS indexes_size,
-        pg_total_relation_size(timeseries_benchmark) AS total_size
-    FROM (
-        SELECT ('"' || table_schema || '"."' || timeseries_benchmark || '"') AS timeseries_benchmark
-        FROM information_schema.tables
-    ) AS all_tables
-    ORDER BY total_size DESC
-) AS pretty_sizes;
-
-
 use timeseries_benchmark
 db.data_objects.find({}).explain("executionStats").executionStats
 db.data_objects.find({}).explain("executionStats").executionStats.executionTimeMillis
@@ -190,5 +170,10 @@ go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -
 
 go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
 go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -count=1 -timeout=0 | gotestfmt
+
+
+SELECT hypertable_size(data_objects) AS total_size;
+docker exec -it timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT * FROM hypertable_detailed_size('data_objects') ORDER BY node_name;"
+
 
  -->

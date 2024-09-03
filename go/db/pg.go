@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -72,11 +71,6 @@ func (db *PostgresDB) Setup() error {
 		}
 	}
 
-	// // create compound index on the "start_time", "interval" and "area" fields
-	// if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time_interval_area ON %v (start_time, interval, area)`, DB_TABLE_NAME)); err != nil {
-	// 	return fmt.Errorf("failed to create unique compound index: %v", err)
-	// }
-
 	if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time ON %v (start_time)`, DB_TABLE_NAME)); err != nil {
 		return fmt.Errorf("failed to create index: %v", err)
 	}
@@ -110,7 +104,7 @@ func (db *PostgresDB) UpsertBulk(docs []DataObject) error {
 		INSERT INTO ` + DB_TABLE_NAME + ` (created_at, updated_at, start_time, interval, area, source, value)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (start_time, interval, area) DO UPDATE
-		SET updated_at = $2, source = $6, value = $7`
+		SET updated_at = EXCLUDED.updated_at, source = EXCLUDED.source, value = EXCLUDED.value`
 
 	batch := &pgx.Batch{}
 
@@ -157,61 +151,24 @@ func (db *PostgresDB) TableSizeInKB() (int, error) {
 
 	var totalSize string
 
+	var query string
 	if db.usingTimescale {
-		query := `SELECT hypertable_size($1) AS total_size;`
-		err := db.conn.QueryRow(context.Background(), query, DB_TABLE_NAME).Scan(&totalSize)
-		if err != nil {
-			return 0, err
-		}
-
-		sizeInBytes, err := strconv.Atoi(totalSize)
-		if err != nil {
-			return 0, err
-		}
-
-		return sizeInBytes / 1024, nil
+		query = `SELECT hypertable_size($1) AS total_size;`
+	} else {
+		query = `SELECT pg_total_relation_size($1) AS total_size;`
 	}
 
-	query := `SELECT pg_size_pretty(pg_total_relation_size($1)) AS total_size;`
 	err := db.conn.QueryRow(context.Background(), query, DB_TABLE_NAME).Scan(&totalSize)
 	if err != nil {
 		return 0, err
 	}
 
-	parseSize := func(sizeStr string) (int, error) {
-		// Remove any leading/trailing whitespace
-		sizeStr = strings.TrimSpace(sizeStr)
-		// Split the string into the numeric part and the unit part
-		parts := strings.Fields(sizeStr)
-		if len(parts) != 2 {
-			return 0, fmt.Errorf("invalid size format: %s", sizeStr)
-		}
-
-		// Convert the numeric part to a float
-		sizeValue, err := strconv.ParseFloat(parts[0], 64)
-		if err != nil {
-			return 0, fmt.Errorf("invalid numeric value: %s", parts[0])
-		}
-
-		// Determine the unit and convert to kilobytes
-		unit := parts[1]
-		unit = strings.ToLower(unit)
-
-		switch unit {
-		case "kb":
-			return int(sizeValue), nil
-		case "mb":
-			return int(sizeValue * 1024), nil
-		case "gb":
-			return int(sizeValue * 1024 * 1024), nil
-		case "tb":
-			return int(sizeValue * 1024 * 1024 * 1024), nil
-		default:
-			return 0, fmt.Errorf("unknown unit: %s", unit)
-		}
+	sizeInBytes, err := strconv.Atoi(totalSize)
+	if err != nil {
+		return 0, err
 	}
 
-	return parseSize(totalSize)
+	return sizeInBytes / 1024, nil
 }
 
 // It seems like, without triggering the manual compression, the compression is not applied
