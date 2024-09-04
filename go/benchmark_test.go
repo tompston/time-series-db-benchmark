@@ -122,20 +122,3 @@ func BenchmarkTimeseries(b *testing.B) {
 		b.Logf("	- %v: %v KB\n", dbInstance.GetName(), size)
 	}
 }
-
-/*
-
-## run compression
-
-SELECT compress_chunk(chunk_schema || '.' || chunk_name)
-	FROM timescaledb_information.chunks
-	WHERE hypertable_name = 'data_objects';
-
-
-SELECT hypertable_size('data_objects') AS total_size;
-
-
-SELECT add_compression_policy('data_objects', INTERVAL '30 days');
-
-
-*/

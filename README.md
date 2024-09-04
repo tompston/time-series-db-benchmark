@@ -2,6 +2,7 @@
 
 The following project tries to benchmark the following methods on 3 database instances:
 
+- mysql
 - mongodb
 - postgresql
 - postgresql with timescale extension
@@ -12,9 +13,10 @@ Each database instance is ran through docker and uses the non-default ports to a
 
 The following methods are benchmarked:
 
+- insert 250k rows (aka upserts on empty table)
 - upsert single row at a time
 - upsert a bulk of rows
-- read x rows with a limit of 1000 and sort descending by start_time.
+- read x rows with a limit of y and sort descending by start_time.
 
 The data format for all of the tables is the same (excluding the id field between mongodb and postgres implementations)
 
@@ -31,6 +33,8 @@ The data format for all of the tables is the same (excluding the id field betwee
 ```
 
 Upserts are done using an `start_time`, `interval` and `area` filter.
+
+The same dat chunks get inserted into all of the databases.
 
 ## Commands
 
@@ -172,13 +176,6 @@ docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT 
 source ~/python-envs/sant/bin/activate
 /Users/tompston/python-envs/sant/bin
 
-
-psql -U test -d timeseries_benchmark -W
-SELECT hypertable_size('data_objects');
-SELECT * FROM hypertable_detailed_size('data_objects') ORDER BY node_name;
-SELECT * FROM hypertable_approximate_detailed_size('data_objects');
-
-
 # see chunk info and compression status
 SELECT chunk_schema, chunk_name, compression_status,
         pg_size_pretty(before_compression_total_bytes) AS size_total_before,
@@ -191,26 +188,5 @@ SELECT
     pg_size_pretty(before_compression_total_bytes) as before,
     pg_size_pretty(after_compression_total_bytes) as after
  FROM hypertable_compression_stats('public.data_objects');
-
-
-
-use timeseries_benchmark
-db.data_objects.find({}).explain("executionStats").executionStats
-db.data_objects.find({}).explain("executionStats").executionStats.executionTimeMillis
-
-
-psql -U test -d timeseries_benchmark -W
-EXPLAIN ANALYZE SELECT * FROM data_objects;
-
-go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
-
-
-go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
-go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -count=1 -timeout=0 | gotestfmt
-
-
-SELECT hypertable_size(data_objects) AS total_size;
-docker exec -it timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT * FROM hypertable_detailed_size('data_objects') ORDER BY node_name;"
-
 
  -->
