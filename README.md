@@ -54,16 +54,7 @@ sudo docker volume rm $(docker volume ls -q)
 
 ## Results
 
-#### Go benchmarks
-
-The result of manually running `EXPLAIN ANALYZE` on the queries is is in the `read_test.txt` file.
-
-Notes:
-
-- the default value of chunck compression in timescale is changed to one which gives better compression
-- mongodb does not use the time series collections because they can't be queried by a single row at a time
-- the empty benchmark lines are omitted.
-- The mysql version uses a field called `resolution` instead of `interval` because `interval` is a reserved keyword in mysql.
+> The result of manually running `EXPLAIN ANALYZE` on the queries is is in the `read_test.txt` file.
 
 ```bash
  go $ go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
@@ -103,15 +94,23 @@ PASS
 ok      timeseries-benchmark    761.087s
 
 ```
+
 - in terms of inserts, mysql was the slowest
 - for single upserts, there is not a significant difference between the databases.
 - for bulk upserts, the native postgresql is the fastest.
 - for read speeds, the native postgresql version is the fastest.
 - for table sizes, the timescale version can have a smaller size than the native postgresql version, but the efficiency of the compression is vastly dependent on the chunk size.
 
+Notes:
+
+- the default value of chunck compression in timescale is changed to one which gives better compression
+- mongodb does not use the time series collections because they can't be queried by a single row at a time
+- the empty benchmark lines are omitted.
+- The mysql version uses a field called `resolution` instead of `interval` because `interval` is a reserved keyword in mysql.
+
 ### EXPLAIN ANALYZE queries
 
-To get specific info about how long the queries took on the database level, i ran the `read_test.sh` script post benchmarking. The results between native postgres and timescale are confusing. Native postgres `SELECT *` queries otperform timescale by at least 2x. All of the logs of the explain queries can be inspected in the file.
+To get specific info about how long the queries took on the database level, i ran the `read_test.sh` script post benchmarking. The results between native postgres and timescale are not great. Native postgres `SELECT *` queries otperform timescale by at least 2x. All of the logs of the explain queries can be inspected in the file.
 
 ```bash
 * postgres select with limit
