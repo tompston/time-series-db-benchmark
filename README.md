@@ -71,8 +71,8 @@ goos: darwin
 goarch: arm64
 pkg: timeseries-benchmark
 BenchmarkTimeseries
-BenchmarkTimeseries/mysql-insert-250000-rows-10                        1        393717472208 ns/op270376864 B/op    4753748 allocs/op
-BenchmarkTimeseries/mongodb-insert-250000-rows-10                      1        107140407042 ns/op2032751896 B/op  28254084 allocs/op
+BenchmarkTimeseries/mysql-insert-250000-rows-10                        1        393717472208 ns/op      270376864 B/op    4753748 allocs/op
+BenchmarkTimeseries/mongodb-insert-250000-rows-10                      1        107140407042 ns/op      2032751896 B/op  28254084 allocs/op
 BenchmarkTimeseries/pg-ntv-insert-250000-rows-10                       1        80756041500 ns/op       100079632 B/op   3250795 allocs/op
 BenchmarkTimeseries/pg-tsc-insert-250000-rows-10                       1        96840892958 ns/op       100099872 B/op   3250988 allocs/op
 
@@ -103,10 +103,10 @@ PASS
 ok      timeseries-benchmark    761.087s
 
 ```
-
+- in terms of inserts, mysql was the slowest
 - for single upserts, there is not a significant difference between the databases.
 - for bulk upserts, the native postgresql is the fastest.
-- for read speeds, the timescale extension is the fastest (~ 4x faster than mongodb)
+- for read speeds, the native postgresql version is the fastest.
 - for table sizes, the timescale version can have a smaller size than the native postgresql version, but the efficiency of the compression is vastly dependent on the chunk size.
 
 ### EXPLAIN ANALYZE queries
@@ -134,6 +134,7 @@ To get specific info about how long the queries took on the database level, i ra
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(hypertable_size('data_objects')) AS total_size;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "\d data_objects"
+
 # see size of table in postgres + timing of query
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(pg_total_relation_size('data_objects')) AS total_size;"
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
@@ -143,7 +144,6 @@ docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "\d data
 docker exec timeseries_mongodb mongosh --username test --password test --eval '
     db = db.getSiblingDB("timeseries_benchmark");
     db.data_objects.find({}).sort({ start_time: -1 }).limit(10000).explain("executionStats").executionStats.executionTimeMillis;'
-
 
 
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT *
