@@ -25,7 +25,7 @@ The data format for all of the tables is the same (excluding the id field betwee
   "created_at": "2021-09-01T00:00:00Z", // TIMESTAMPTZ | mongodb ISODate
   "updated_at": "2021-09-01T00:00:00Z", // TIMESTAMPTZ | mongodb ISODate
   "start_time": "2021-09-01T00:00:00Z", // TIMESTAMPTZ | mongodb ISODate
-  "interval": TIME_IN_MILLISECONDS,     // BIGINT
+  "interval": TIME_IN_MILLISECONDS,     // BIGINT (renamed to resolution in mysql)
   "area": "area",                       // TEXT
   "source": "source",                   // TEXT
   "value": 0.0,                         // double precision
@@ -34,7 +34,7 @@ The data format for all of the tables is the same (excluding the id field betwee
 
 Upserts are done using an `start_time`, `interval` and `area` filter.
 
-The same dat chunks get inserted into all of the databases.
+The same data chunks get inserted into all of the databases.
 
 ## Commands
 
@@ -57,8 +57,6 @@ sudo docker volume rm $(docker volume ls -q)
 ```
 
 ## Results
-
-> The result of manually running `EXPLAIN ANALYZE` on the queries is is in the `read_test.txt` file.
 
 ```bash
  go $ go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
@@ -135,24 +133,15 @@ To get specific info about how long the queries took on the database level, i ra
 ```bash
 # see size of table in timescale + timing of query
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(hypertable_size('data_objects')) AS total_size;"
-docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "\d data_objects"
 
 # see size of table in postgres + timing of query
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(pg_total_relation_size('data_objects')) AS total_size;"
-docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "\d data_objects"
-
-# see timing of mongodb query
-docker exec timeseries_mongodb mongosh --username test --password test --eval '
-    db = db.getSiblingDB("timeseries_benchmark");
-    db.data_objects.find({}).sort({ start_time: -1 }).limit(10000).explain("executionStats").executionStats.executionTimeMillis;'
-
 
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT *
   FROM timescaledb_information.dimensions
   WHERE hypertable_name = 'metrics';'
-
 ```
 
 ### Gotchas
