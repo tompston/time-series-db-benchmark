@@ -74,9 +74,7 @@ func (db *PostgresDB) Setup() error {
 	return nil
 }
 
-func (db *PostgresDB) Close() error {
-	return db.conn.Close(ctx)
-}
+func (db *PostgresDB) Close() error { return db.conn.Close(ctx) }
 
 func (db *PostgresDB) UpsertSingle(docs []DataObject) error {
 	query := `
@@ -172,7 +170,7 @@ func (db *PostgresDB) TableSizeInKB() (int, error) {
 // need to run this manually in the benchmarks.
 func (db *PostgresDB) ExecManualCompression() error {
 	if !db.usingTimescale {
-		return fmt.Errorf("compression is only supported for TimescaleDB")
+		return fmt.Errorf("compression is only supported with timescale extension")
 	}
 
 	if _, err := db.conn.Exec(ctx, fmt.Sprintf(`SELECT compress_chunk(c) from show_chunks('%v') c;`, DB_TABLE_NAME)); err != nil {

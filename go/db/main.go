@@ -57,7 +57,7 @@ func GenerateFakeData(numObjects int) []DataObject {
 			Interval:  3600000, // 1 hour in milliseconds
 			Area:      "lv",
 			Source:    "source-of-data",
-			Value:     rand.Float64()*14000 - 7000,
+			Value:     rand.Float64(),
 		}
 
 		rows[i] = obj

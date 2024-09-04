@@ -15,18 +15,6 @@ type MySQLDB struct {
 }
 
 // mysql -u test -p -h localhost -P 5554
-/*
-
-SELECT
-    table_schema AS `Database`,
-    table_name AS `Table`,
-    ROUND((data_length + index_length) / 1024, 2) AS `Size (KB)`
-FROM
-    information_schema.tables
-WHERE
-    table_name = 'data_objects' AND table_schema = 'timeseries_benchmark';
-
-*/
 func NewMySQLDB(name, host string, port int, username, password, dbname string) (*MySQLDB, error) {
 	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", username, password, host, port, dbname)
 	conn, err := sql.Open("mysql", connStr)
@@ -83,9 +71,7 @@ func (db *MySQLDB) Setup() error {
 	return nil
 }
 
-func (db *MySQLDB) Close() error {
-	return db.conn.Close()
-}
+func (db *MySQLDB) Close() error { return db.conn.Close() }
 
 func (db *MySQLDB) UpsertSingle(docs []DataObject) error {
 	query := fmt.Sprintf(`

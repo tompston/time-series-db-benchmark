@@ -47,13 +47,9 @@ func NewMongoDB(name, host string, port int, username, password string) (*MongoD
 	}, nil
 }
 
-func (db *MongoDB) GetName() string {
-	return db.name
-}
+func (db *MongoDB) GetName() string { return db.name }
 
-func (db *MongoDB) Close() error {
-	return db.conn.Disconnect(ctx)
-}
+func (db *MongoDB) Close() error { return db.conn.Disconnect(ctx) }
 
 func (db *MongoDB) Setup() error {
 	if _, err := db.coll.DeleteMany(ctx, bson.M{}); err != nil {
