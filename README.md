@@ -122,15 +122,25 @@ mongo.find_one                        9.82 ms
 # see size of table in timescale + timing of query
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(hypertable_size('data_objects')) AS total_size;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
+docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "\d data_objects"
 # see size of table in postgres + timing of query
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "SELECT pg_size_pretty(pg_total_relation_size('data_objects')) AS total_size;"
 docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "EXPLAIN ANALYZE SELECT * FROM data_objects ORDER BY start_time DESC LIMIT 10000;"
+docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c "\d data_objects"
 
 # see timing of mongodb query
 docker exec timeseries_mongodb mongosh --username test --password test --eval '
     db = db.getSiblingDB("timeseries_benchmark");
     db.data_objects.find({}).sort({ start_time: -1 }).limit(10000).explain("executionStats").executionStats.executionTimeMillis;'
+
+
+
+docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT * 
+  FROM timescaledb_information.dimensions 
+  WHERE hypertable_name = 'metrics';'
+
 ```
+
 
 ### Gotchas
 

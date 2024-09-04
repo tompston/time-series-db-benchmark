@@ -32,8 +32,7 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer dbMysql.Close()
 
-	NUM_OBJECTS := 100_000
-	// NUM_OBJECTS := 3_000
+	NUM_OBJECTS := 500_000
 	UPDATE_AND_READ_LIMIT := 4_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
@@ -82,6 +81,13 @@ func BenchmarkTimeseries(b *testing.B) {
 			}
 		})
 	}
+
+	timescaleDbUncompressedSize, err := pgTimescale.TableSizeInKB()
+	if err != nil {
+		b.Fatalf("Error: %v", err)
+	}
+
+	b.Logf(" * storage size for %v, %v rows, before compression: %v", pgTimescale.GetName(), NUM_OBJECTS, timescaleDbUncompressedSize)
 
 	if err := pgTimescale.ExecManualCompression(); err != nil {
 		b.Fatalf("Error: %v", err)

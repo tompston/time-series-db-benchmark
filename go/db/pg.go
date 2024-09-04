@@ -53,7 +53,7 @@ func (db *PostgresDB) Setup() error {
 	}
 
 	if db.usingTimescale {
-		if _, err := db.conn.Exec(ctx, fmt.Sprintf(`SELECT create_hypertable('%v', by_range('start_time', INTERVAL '60 days'));`, DB_TABLE_NAME)); err != nil {
+		if _, err := db.conn.Exec(ctx, fmt.Sprintf(`SELECT create_hypertable('%v', by_range('start_time', INTERVAL '365 days'));`, DB_TABLE_NAME)); err != nil {
 			return err
 		}
 
@@ -67,9 +67,9 @@ func (db *PostgresDB) Setup() error {
 		}
 	}
 
-	if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time ON %v (start_time)`, DB_TABLE_NAME)); err != nil {
-		return fmt.Errorf("failed to create index: %v", err)
-	}
+	// if _, err := db.conn.Exec(ctx, fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_start_time ON %v (start_time)`, DB_TABLE_NAME)); err != nil {
+	// 	return fmt.Errorf("failed to create index: %v", err)
+	// }
 
 	return nil
 }
