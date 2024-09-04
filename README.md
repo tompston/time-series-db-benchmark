@@ -66,54 +66,65 @@ Notes:
 - The mysql version uses a field called `resolution` instead of `interval` because `interval` is a reserved keyword in mysql.
 
 ```bash
-BenchmarkTimeseries/mysql-insert-500000-rows-10                        1        706494051417 ns/op      540666584 B/op   9506739 allocs/op
-BenchmarkTimeseries/mongodb-insert-500000-rows-10                      1        211530664083 ns/op      4064646056 B/op 56505957 allocs/op
-BenchmarkTimeseries/pg-ntv-insert-500000-rows-10                       1        181912643125 ns/op      200180400 B/op   6501848 allocs/op
-BenchmarkTimeseries/pg-tsc-insert-500000-rows-10                       1        219917379792 ns/op      200208384 B/op   6502129 allocs/op
+ go $ go test -benchmem -run=^$ -bench ^BenchmarkTimeseries$ timeseries-benchmark -v -count=1 -timeout=0
+goos: darwin
+goarch: arm64
+pkg: timeseries-benchmark
+BenchmarkTimeseries
+BenchmarkTimeseries/mysql-insert-250000-rows-10                        1        393717472208 ns/op270376864 B/op    4753748 allocs/op
+BenchmarkTimeseries/mongodb-insert-250000-rows-10                      1        107140407042 ns/op2032751896 B/op  28254084 allocs/op
+BenchmarkTimeseries/pg-ntv-insert-250000-rows-10                       1        80756041500 ns/op       100079632 B/op   3250795 allocs/op
+BenchmarkTimeseries/pg-tsc-insert-250000-rows-10                       1        96840892958 ns/op       100099872 B/op   3250988 allocs/op
 
-BenchmarkTimeseries/mysql-upsert-single-4000-rows-10                   1        1383154125 ns/op         4321896 B/op      76004 allocs/op
-BenchmarkTimeseries/mongodb-upsert-single-4000-rows-10                 1        1045744583 ns/op        31045960 B/op     416041 allocs/op
-BenchmarkTimeseries/pg-ntv-upsert-single-4000-rows-10                  1        1776864291 ns/op         1600000 B/op      52000 allocs/op
-BenchmarkTimeseries/pg-tsc-upsert-single-4000-rows-10                  1        2131020208 ns/op         1600000 B/op      52000 allocs/op
+BenchmarkTimeseries/mysql-upsert-single-4000-rows-10                   1        1588451000 ns/op         4321896 B/op      76004 allocs/op
+BenchmarkTimeseries/mongodb-upsert-single-4000-rows-10                 1        1129163375 ns/op        31062512 B/op     416154 allocs/op
+BenchmarkTimeseries/pg-ntv-upsert-single-4000-rows-10                  1        1183699083 ns/op         1600000 B/op      52000 allocs/op
+BenchmarkTimeseries/pg-tsc-upsert-single-4000-rows-10                  1        1498572959 ns/op         1600000 B/op      52000 allocs/op
 
-BenchmarkTimeseries/mysql-upsert-bulk-4000-rows-10                     2         709444396 ns/op         2529756 B/op      56021 allocs/op
-BenchmarkTimeseries/mongodb-upsert-bulk-4000-rows-10                   7         158134631 ns/op        15426505 B/op     176112 allocs/op
-BenchmarkTimeseries/pg-ntv-upsert-bulk-4000-rows-10                   19          68316186 ns/op         5768675 B/op      52042 allocs/op
-BenchmarkTimeseries/pg-tsc-upsert-bulk-4000-rows-10                    6         199995639 ns/op         5768672 B/op      52042 allocs/op
+BenchmarkTimeseries/mysql-upsert-bulk-4000-rows-10                     2         721893917 ns/op         2529884 B/op      56023 allocs/op
+BenchmarkTimeseries/mongodb-upsert-bulk-4000-rows-10                   7         152042810 ns/op        15323329 B/op     176117 allocs/op
+BenchmarkTimeseries/pg-ntv-upsert-bulk-4000-rows-10                   19          55011397 ns/op         5768672 B/op      52042 allocs/op
+BenchmarkTimeseries/pg-tsc-upsert-bulk-4000-rows-10                    6         186201875 ns/op         5768672 B/op      52042 allocs/op
 
-BenchmarkTimeseries/mysql-get-4000-10                                387           3105753 ns/op         3031493 B/op      40050 allocs/op
-BenchmarkTimeseries/mongodb-get-4000-10                              102          12421009 ns/op         5025492 B/op      80200 allocs/op
-BenchmarkTimeseries/pg-ntv-get-4000-10                               336           3548450 ns/op         2934926 B/op      16034 allocs/op
-BenchmarkTimeseries/pg-tsc-get-4000-10                               248           4571874 ns/op         2934839 B/op      16033 allocs/op
+    benchmark_test.go:90:  * storage size for pg-tsc, 250000 rows, before compression: 47640
 
-    benchmark_test.go:106: sleeping for 60 sec to get the correct mongodb collection storage size
-    benchmark_test.go:109:  * storage size for 500000 rows
-    benchmark_test.go:116:      - mysql:    45152 KB
-    benchmark_test.go:116:      - mongodb:  41584 KB
-    benchmark_test.go:116:      - pg-ntv:   83696 KB
-    benchmark_test.go:116:      - pg-tsc:   44544 KB
+BenchmarkTimeseries/mysql-get-4000-10                                380           3121183 ns/op         3031533 B/op      40051 allocs/op
+BenchmarkTimeseries/mongodb-get-4000-10                               99          11677680 ns/op         5057506 B/op      80200 allocs/op
+BenchmarkTimeseries/pg-ntv-get-4000-10                               511           2216196 ns/op         2934812 B/op      16032 allocs/op
+BenchmarkTimeseries/pg-tsc-get-4000-10                               378           4087209 ns/op         2934892 B/op      16033 allocs/op
 
+    benchmark_test.go:112: sleeping for 60 sec to get the correct mongodb collection storage size
+    benchmark_test.go:115:  * storage size for 250000 rows
+    benchmark_test.go:122:      - mysql:    23632 KB
+    benchmark_test.go:122:      - mongodb:  21728 KB
+    benchmark_test.go:122:      - pg-ntv:   39776 KB
+    benchmark_test.go:122:      - pg-tsc:   5328 KB
 PASS
-ok      timeseries-benchmark    1403.829s
+ok      timeseries-benchmark    761.087s
+
 ```
 
 - for single upserts, there is not a significant difference between the databases.
 - for bulk upserts, the native postgresql is the fastest.
 - for read speeds, the timescale extension is the fastest (~ 4x faster than mongodb)
-- for table sizes, the timescale version has a slight advantage over mongodb, but a 6x compression over the native postgresql.
+- for table sizes, the timescale version can have a smaller size than the native postgresql version, but the efficiency of the compression is vastly dependent on the chunk size.
 
-#### python read speed
+### EXPLAIN ANALYZE queries
 
-For some reason the python read speed benchmarks have the opposite result. Not sure why. Note that the python script is ran once, so the mean over x runs is not calculated.
+To get specific info about how long the queries took on the database level, i ran the `read_test.sh` script post benchmarking. The results between native postgres and timescale are confusing. Native postgres `SELECT *` queries otperform timescale by at least 2x. All of the logs of the explain queries can be inspected in the file.
 
 ```bash
-pg_timesale.select_with_limit       116.28 ms
-pg_native.select_with_limit           3.81 ms
-mongo.select_with_limit               0.11 ms
------
-pg_timesale.find_one                  3.97 ms
-pg_native.find_one                    0.63 ms
-mongo.find_one                        9.82 ms
+* postgres select with limit
+  Planning Time: 0.585 ms
+  Execution Time: 2.399 ms
+
+* timescaledb compressed -> select with limit
+  Planning Time: 13.739 ms
+  Execution Time: 6.818 ms
+
+* timescale decompressed -> select with limit
+  Planning Time: 3.955 ms
+  Execution Time: 3.160 ms
 ```
 
 ### Debug commands
@@ -135,12 +146,11 @@ docker exec timeseries_mongodb mongosh --username test --password test --eval '
 
 
 
-docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT * 
-  FROM timescaledb_information.dimensions 
+docker exec timeseries_postgres psql -U test -d timeseries_benchmark -c 'SELECT *
+  FROM timescaledb_information.dimensions
   WHERE hypertable_name = 'metrics';'
 
 ```
-
 
 ### Gotchas
 

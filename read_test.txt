@@ -1,100 +1,364 @@
  ~ mongodb
-9
+16
 
   * postgres select with limit
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=0.42..786.02 rows=10000 width=58) (actual time=0.017..1.572 rows=10000 loops=1)
-   ->  Index Scan Backward using data_objects_pkey on data_objects  (cost=0.42..15712.33 rows=200000 width=58) (actual time=0.016..0.975 rows=10000 loops=1)
- Planning Time: 0.190 ms
- Execution Time: 1.879 ms
+ Limit  (cost=0.42..738.74 rows=10000 width=58) (actual time=0.077..2.035 rows=10000 loops=1)
+   ->  Index Scan Backward using data_objects_pkey on data_objects  (cost=0.42..18458.48 rows=250000 width=58) (actual time=0.076..1.425 rows=10000 loops=1)
+ Planning Time: 0.585 ms
+ Execution Time: 2.399 ms
 (4 rows)
 
   * postgres sum value with limit
-                                                                    QUERY PLAN                                                                    
---------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=5262.88..5262.89 rows=1 width=8) (actual time=14.353..15.869 rows=1 loops=1)
-   ->  Finalize Aggregate  (cost=5262.88..5262.89 rows=1 width=8) (actual time=14.352..15.867 rows=1 loops=1)
-         ->  Gather  (cost=5262.67..5262.88 rows=2 width=8) (actual time=14.259..15.864 rows=3 loops=1)
+                                                                     QUERY PLAN                                                                     
+----------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=6005.30..6005.31 rows=1 width=8) (actual time=24.006..26.705 rows=1 loops=1)
+   ->  Finalize Aggregate  (cost=6005.30..6005.31 rows=1 width=8) (actual time=24.005..26.703 rows=1 loops=1)
+         ->  Gather  (cost=6005.08..6005.29 rows=2 width=8) (actual time=23.899..26.698 rows=3 loops=1)
                Workers Planned: 2
                Workers Launched: 2
-               ->  Partial Aggregate  (cost=4262.67..4262.68 rows=1 width=8) (actual time=11.464..11.464 rows=1 loops=3)
-                     ->  Parallel Seq Scan on data_objects  (cost=0.00..4054.33 rows=83333 width=8) (actual time=0.030..6.360 rows=66667 loops=3)
- Planning Time: 0.261 ms
- Execution Time: 15.935 ms
+               ->  Partial Aggregate  (cost=5005.08..5005.09 rows=1 width=8) (actual time=21.848..21.848 rows=1 loops=3)
+                     ->  Parallel Seq Scan on data_objects  (cost=0.00..4744.67 rows=104167 width=8) (actual time=0.082..13.872 rows=83333 loops=3)
+ Planning Time: 0.253 ms
+ Execution Time: 26.818 ms
 (9 rows)
 
   * timescaledb compressed -> select with limit
-                                                                          QUERY PLAN                                                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=17872.14..17897.14 rows=10000 width=58) (actual time=19.904..22.204 rows=10000 loops=1)
-   ->  Custom Scan (ChunkAppend) on data_objects  (cost=17872.14..18497.14 rows=250000 width=58) (actual time=19.903..21.621 rows=10000 loops=1)
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=17872.14..17897.14 rows=10000 width=58) (actual time=1.529..5.976 rows=10000 loops=1)
+   ->  Custom Scan (ChunkAppend) on data_objects  (cost=17872.14..18497.14 rows=250000 width=58) (actual time=1.528..5.379 rows=10000 loops=1)
          Order: data_objects.start_time DESC
-         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (actual time=19.902..20.774 rows=10000 loops=1)
-               Sort Key: _hyper_13_184_chunk.start_time DESC
-               Sort Method: external merge  Disk: 5176kB
-               ->  Custom Scan (DecompressChunk) on _hyper_13_184_chunk  (cost=0.05..12.50 rows=250000 width=58) (actual time=0.077..6.908 rows=71072 loops=1)
-                     ->  Seq Scan on compress_hyper_14_199_chunk  (cost=0.00..12.50 rows=250 width=284) (actual time=0.004..0.016 rows=72 loops=1)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (actual time=1.527..1.720 rows=5032 loops=1)
+               Sort Key: _hyper_17_344_chunk.start_time DESC
+               Sort Method: quicksort  Memory: 861kB
+               ->  Custom Scan (DecompressChunk) on _hyper_17_344_chunk  (cost=0.05..12.50 rows=250000 width=58) (actual time=0.143..0.607 rows=5032 loops=1)
+                     ->  Seq Scan on compress_hyper_18_373_chunk  (cost=0.00..12.50 rows=250 width=284) (actual time=0.025..0.027 rows=6 loops=1)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (actual time=2.582..2.804 rows=4968 loops=1)
+               Sort Key: _hyper_17_343_chunk.start_time DESC
+               Sort Method: quicksort  Memory: 1465kB
+               ->  Custom Scan (DecompressChunk) on _hyper_17_343_chunk  (cost=0.05..12.50 rows=250000 width=58) (actual time=0.095..0.958 rows=8760 loops=1)
+                     ->  Seq Scan on compress_hyper_18_372_chunk  (cost=0.00..12.50 rows=250 width=284) (actual time=0.008..0.013 rows=9 loops=1)
          ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
-               Sort Key: _hyper_13_183_chunk.start_time DESC
-               ->  Custom Scan (DecompressChunk) on _hyper_13_183_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
-                     ->  Seq Scan on compress_hyper_14_198_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+               Sort Key: _hyper_17_342_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_342_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_371_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
          ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
-               Sort Key: _hyper_13_182_chunk.start_time DESC
-               ->  Custom Scan (DecompressChunk) on _hyper_13_182_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
-                     ->  Seq Scan on compress_hyper_14_197_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
- Planning Time: 1.883 ms
- Execution Time: 23.058 ms
-(18 rows)
+               Sort Key: _hyper_17_341_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_341_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_370_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_340_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_340_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_369_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_339_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_339_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_368_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_338_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_338_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_367_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_337_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_337_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_366_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_336_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_336_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_365_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_335_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_335_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_364_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_334_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_334_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_363_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_333_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_333_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_362_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_332_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_332_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_361_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_331_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_331_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_360_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_330_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_330_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_359_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_329_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_329_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_358_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_328_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_328_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_357_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_327_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_327_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_356_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_326_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_326_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_355_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_325_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_325_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_354_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_324_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_324_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_353_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_323_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_323_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_352_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_322_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_322_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_351_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_321_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_321_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_350_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_320_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_320_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_349_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_319_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_319_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_348_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_318_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_318_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_347_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_317_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_317_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_346_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+         ->  Sort  (cost=17872.14..18497.14 rows=250000 width=58) (never executed)
+               Sort Key: _hyper_17_316_chunk.start_time DESC
+               ->  Custom Scan (DecompressChunk) on _hyper_17_316_chunk  (cost=0.05..12.50 rows=250000 width=58) (never executed)
+                     ->  Seq Scan on compress_hyper_18_345_chunk  (cost=0.00..12.50 rows=250 width=284) (never executed)
+ Planning Time: 13.739 ms
+ Execution Time: 6.818 ms
+(123 rows)
 
   * timescale compressed -> sum value with limit
-                                                                             QUERY PLAN                                                                             
---------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1912.55..1912.56 rows=1 width=8) (actual time=17.958..17.960 rows=1 loops=1)
-   ->  Finalize Aggregate  (cost=1912.55..1912.56 rows=1 width=8) (actual time=17.957..17.959 rows=1 loops=1)
-         ->  Append  (cost=637.50..1912.55 rows=3 width=8) (actual time=2.940..17.957 rows=3 loops=1)
-               ->  Partial Aggregate  (cost=637.50..637.51 rows=1 width=8) (actual time=2.940..2.941 rows=1 loops=1)
-                     ->  Custom Scan (DecompressChunk) on _hyper_13_182_chunk  (cost=0.05..12.50 rows=250000 width=8) (actual time=0.070..1.611 rows=32928 loops=1)
-                           ->  Seq Scan on compress_hyper_14_197_chunk  (cost=0.00..12.50 rows=250 width=36) (actual time=0.005..0.007 rows=33 loops=1)
-               ->  Partial Aggregate  (cost=637.50..637.51 rows=1 width=8) (actual time=8.638..8.639 rows=1 loops=1)
-                     ->  Custom Scan (DecompressChunk) on _hyper_13_183_chunk  (cost=0.05..12.50 rows=250000 width=8) (actual time=0.045..4.514 rows=96000 loops=1)
-                           ->  Seq Scan on compress_hyper_14_198_chunk  (cost=0.00..12.50 rows=250 width=36) (actual time=0.006..0.018 rows=96 loops=1)
-               ->  Partial Aggregate  (cost=637.50..637.51 rows=1 width=8) (actual time=6.376..6.376 rows=1 loops=1)
-                     ->  Custom Scan (DecompressChunk) on _hyper_13_184_chunk  (cost=0.05..12.50 rows=250000 width=8) (actual time=0.066..3.480 rows=71072 loops=1)
-                           ->  Seq Scan on compress_hyper_14_199_chunk  (cost=0.00..12.50 rows=250 width=36) (actual time=0.005..0.013 rows=72 loops=1)
- Planning Time: 1.558 ms
- Execution Time: 18.037 ms
-(14 rows)
+                                                                               QUERY PLAN                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=11990.95..11990.96 rows=1 width=8) (actual time=12.679..14.707 rows=1 loops=1)
+   ->  Finalize Aggregate  (cost=11990.95..11990.96 rows=1 width=8) (actual time=12.677..14.705 rows=1 loops=1)
+         ->  Gather  (cost=1378.97..11990.94 rows=5 width=8) (actual time=2.187..14.687 rows=34 loops=1)
+               Workers Planned: 5
+               Workers Launched: 5
+               ->  Parallel Append  (cost=378.97..10990.44 rows=1 width=8) (actual time=1.008..4.678 rows=6 loops=6)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.117..1.118 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_316_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.253..0.761 rows=8448 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_345_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.009..0.013 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.137..1.137 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_317_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.268..0.752 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_346_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.084..1.084 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_318_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.225..0.700 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_347_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.011..0.015 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.085..1.085 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_319_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.212..0.701 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_348_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.004..0.008 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.022..1.022 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_320_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.158..0.625 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_349_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.012 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.936..0.936 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_321_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.079..0.564 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_350_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.012 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.950..0.950 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_322_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.109..0.570 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_351_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.007..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.919..0.920 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_323_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.100..0.555 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_352_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.012 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.890..0.890 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_324_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.074..0.526 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_353_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.931..0.932 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_325_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.077..0.550 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_354_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.954..0.954 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_326_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.075..0.576 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_355_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.007..0.010 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.021..1.021 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_327_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.083..0.611 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_356_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.013 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.966..0.966 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_328_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.089..0.560 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_357_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.936..0.936 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_329_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.092..0.557 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_358_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.008..0.011 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.473..0.474 rows=1 loops=2)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_330_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.044..0.280 rows=4380 loops=2)
+                                 ->  Parallel Seq Scan on compress_hyper_18_359_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.015..0.017 rows=4 loops=2)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.456..0.456 rows=1 loops=2)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_331_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.036..0.265 rows=4380 loops=2)
+                                 ->  Parallel Seq Scan on compress_hyper_18_360_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.004..0.006 rows=4 loops=2)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.495..0.495 rows=1 loops=2)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_332_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.079..0.304 rows=4380 loops=2)
+                                 ->  Parallel Seq Scan on compress_hyper_18_361_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.010..0.012 rows=4 loops=2)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.476..0.476 rows=1 loops=2)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_333_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.054..0.277 rows=4380 loops=2)
+                                 ->  Parallel Seq Scan on compress_hyper_18_362_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.007..0.009 rows=4 loops=2)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.487..0.487 rows=1 loops=2)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_334_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.037..0.285 rows=4380 loops=2)
+                                 ->  Parallel Seq Scan on compress_hyper_18_363_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.004..0.006 rows=4 loops=2)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.931..0.933 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_335_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.078..0.509 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_364_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.011..0.014 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.941..0.942 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_336_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.080..0.540 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_365_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.009..0.012 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.012..1.014 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_337_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.144..0.612 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_366_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.002..0.005 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.915..0.916 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_338_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.091..0.528 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_367_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.002..0.005 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.961..0.963 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_339_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.105..0.557 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_368_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.009..0.012 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.948..0.949 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_340_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.093..0.570 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_369_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.005..0.009 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.945..0.947 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_341_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.073..0.542 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_370_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.005..0.007 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=1.027..1.028 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_342_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.151..0.637 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_371_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.007..0.010 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.994..0.995 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_343_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.049..0.544 rows=8760 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_372_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.002..0.005 rows=9 loops=1)
+                     ->  Partial Aggregate  (cost=378.97..378.98 rows=1 width=8) (actual time=0.593..0.594 rows=1 loops=1)
+                           ->  Custom Scan (DecompressChunk) on _hyper_17_344_chunk  (cost=0.08..11.47 rows=147000 width=8) (actual time=0.092..0.357 rows=5032 loops=1)
+                                 ->  Parallel Seq Scan on compress_hyper_18_373_chunk  (cost=0.00..11.47 rows=147 width=36) (actual time=0.006..0.008 rows=6 loops=1)
+ Planning Time: 9.215 ms
+ Execution Time: 15.245 ms
+(95 rows)
 
   * timescale decompressed -> select with limit
-                                                                                         QUERY PLAN                                                                                          
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=0.29..283.37 rows=10000 width=58) (actual time=0.022..2.777 rows=10000 loops=1)
-   ->  Custom Scan (ChunkAppend) on data_objects  (cost=0.29..2299.33 rows=81216 width=58) (actual time=0.021..2.183 rows=10000 loops=1)
+                                                                                        QUERY PLAN                                                                                         
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.29..276.07 rows=10000 width=58) (actual time=0.027..2.716 rows=10000 loops=1)
+   ->  Custom Scan (ChunkAppend) on data_objects  (cost=0.29..663.93 rows=24064 width=58) (actual time=0.026..2.123 rows=10000 loops=1)
          Order: data_objects.start_time DESC
-         ->  Index Scan using _hyper_13_184_chunk_data_objects_start_time_idx on _hyper_13_184_chunk  (cost=0.29..2299.33 rows=81216 width=58) (actual time=0.020..1.306 rows=10000 loops=1)
-         ->  Index Scan using _hyper_13_183_chunk_data_objects_start_time_idx on _hyper_13_183_chunk  (cost=0.29..2991.09 rows=105280 width=58) (never executed)
-         ->  Index Scan using _hyper_13_182_chunk_data_objects_start_time_idx on _hyper_13_182_chunk  (cost=0.29..1104.15 rows=39104 width=58) (never executed)
- Planning Time: 1.195 ms
- Execution Time: 3.128 ms
-(8 rows)
+         ->  Index Scan using _hyper_17_344_chunk_data_objects_start_time_idx on _hyper_17_344_chunk  (cost=0.29..249.34 rows=9024 width=58) (actual time=0.026..0.682 rows=5032 loops=1)
+         ->  Index Scan using _hyper_17_343_chunk_data_objects_start_time_idx on _hyper_17_343_chunk  (cost=0.29..414.58 rows=15040 width=58) (actual time=0.026..0.622 rows=4968 loops=1)
+         ->  Index Scan using _hyper_17_342_chunk_data_objects_start_time_idx on _hyper_17_342_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_341_chunk_data_objects_start_time_idx on _hyper_17_341_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_340_chunk_data_objects_start_time_idx on _hyper_17_340_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_339_chunk_data_objects_start_time_idx on _hyper_17_339_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_338_chunk_data_objects_start_time_idx on _hyper_17_338_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_337_chunk_data_objects_start_time_idx on _hyper_17_337_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_336_chunk_data_objects_start_time_idx on _hyper_17_336_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_335_chunk_data_objects_start_time_idx on _hyper_17_335_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_334_chunk_data_objects_start_time_idx on _hyper_17_334_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_333_chunk_data_objects_start_time_idx on _hyper_17_333_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_332_chunk_data_objects_start_time_idx on _hyper_17_332_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_331_chunk_data_objects_start_time_idx on _hyper_17_331_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_330_chunk_data_objects_start_time_idx on _hyper_17_330_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_329_chunk_data_objects_start_time_idx on _hyper_17_329_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_328_chunk_data_objects_start_time_idx on _hyper_17_328_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_327_chunk_data_objects_start_time_idx on _hyper_17_327_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_326_chunk_data_objects_start_time_idx on _hyper_17_326_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_325_chunk_data_objects_start_time_idx on _hyper_17_325_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_324_chunk_data_objects_start_time_idx on _hyper_17_324_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_323_chunk_data_objects_start_time_idx on _hyper_17_323_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_322_chunk_data_objects_start_time_idx on _hyper_17_322_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_321_chunk_data_objects_start_time_idx on _hyper_17_321_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_320_chunk_data_objects_start_time_idx on _hyper_17_320_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_319_chunk_data_objects_start_time_idx on _hyper_17_319_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_318_chunk_data_objects_start_time_idx on _hyper_17_318_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_317_chunk_data_objects_start_time_idx on _hyper_17_317_chunk  (cost=0.29..414.58 rows=15040 width=58) (never executed)
+         ->  Index Scan using _hyper_17_316_chunk_data_objects_start_time_idx on _hyper_17_316_chunk  (cost=0.29..260.66 rows=9024 width=58) (never executed)
+ Planning Time: 3.955 ms
+ Execution Time: 3.160 ms
+(34 rows)
 
   * timescale decompressed -> sum value with limit
-                                                                          QUERY PLAN                                                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=5059.48..5059.49 rows=1 width=8) (actual time=13.976..16.061 rows=1 loops=1)
-   ->  Finalize Aggregate  (cost=5059.48..5059.49 rows=1 width=8) (actual time=13.975..16.059 rows=1 loops=1)
-         ->  Gather  (cost=2461.18..5059.47 rows=6 width=8) (actual time=5.844..16.055 rows=6 loops=1)
-               Workers Planned: 2
-               Workers Launched: 2
-               ->  Parallel Append  (cost=1461.18..4058.87 rows=3 width=8) (actual time=8.170..11.973 rows=2 loops=3)
-                     ->  Partial Aggregate  (cost=1894.12..1894.13 rows=1 width=8) (actual time=5.970..5.970 rows=1 loops=3)
-                           ->  Parallel Seq Scan on _hyper_13_183_chunk  (cost=0.00..1739.29 rows=61929 width=8) (actual time=0.010..4.640 rows=32000 loops=3)
-                     ->  Partial Aggregate  (cost=1461.18..1461.19 rows=1 width=8) (actual time=6.175..6.176 rows=1 loops=2)
-                           ->  Parallel Seq Scan on _hyper_13_184_chunk  (cost=0.00..1341.74 rows=47774 width=8) (actual time=0.008..4.690 rows=35536 loops=2)
-                     ->  Partial Aggregate  (cost=703.53..703.54 rows=1 width=8) (actual time=5.647..5.647 rows=1 loops=1)
-                           ->  Parallel Seq Scan on _hyper_13_182_chunk  (cost=0.00..646.02 rows=23002 width=8) (actual time=0.019..4.280 rows=32928 loops=1)
- Planning Time: 1.067 ms
- Execution Time: 16.121 ms
-(14 rows)
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=8631.39..8631.40 rows=1 width=8) (actual time=12.504..14.909 rows=1 loops=1)
+   ->  Finalize Aggregate  (cost=8631.39..8631.40 rows=1 width=8) (actual time=12.502..14.907 rows=1 loops=1)
+         ->  Gather  (cost=1270.59..8631.38 rows=5 width=8) (actual time=1.407..14.899 rows=38 loops=1)
+               Workers Planned: 5
+               Workers Launched: 5
+               ->  Parallel Append  (cost=270.59..7630.88 rows=1 width=8) (actual time=1.541..7.701 rows=6 loops=6)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.734..1.735 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_317_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.019..1.334 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.780..1.780 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_318_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.018..1.400 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.665..1.665 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_319_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.019..1.283 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.593..1.593 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_320_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.019..1.215 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.612..1.612 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_321_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.018..1.251 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.556..1.556 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_322_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.032..1.194 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.529..1.529 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_323_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.009..1.168 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.596..1.597 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_324_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.007..1.230 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.578..1.578 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_325_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.007..1.195 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.609..1.609 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_326_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.007..1.236 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.645..1.645 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_327_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.009..1.244 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.572..1.572 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_328_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.011..1.195 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.542..1.542 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_329_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.007..1.137 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.524..1.524 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_330_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..1.164 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.552..1.552 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_331_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..1.190 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.524..1.524 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_332_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..1.152 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.521..1.521 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_333_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.010..1.139 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.560..1.560 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_334_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.009..1.179 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=0.809..0.809 rows=1 loops=2)
+                           ->  Parallel Seq Scan on _hyper_17_335_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.006..0.601 rows=4380 loops=2)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=0.558..0.558 rows=1 loops=3)
+                           ->  Parallel Seq Scan on _hyper_17_336_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..0.425 rows=2920 loops=3)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=0.318..0.319 rows=1 loops=6)
+                           ->  Parallel Seq Scan on _hyper_17_337_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.010..0.257 rows=1460 loops=6)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=0.910..0.911 rows=1 loops=2)
+                           ->  Parallel Seq Scan on _hyper_17_338_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..0.725 rows=4380 loops=2)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.538..1.539 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_339_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.008..1.168 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.584..1.584 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_340_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.009..1.215 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.606..1.606 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_341_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.015..1.220 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.729..1.730 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_342_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.009..1.350 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=270.59..270.60 rows=1 width=8) (actual time=1.447..1.448 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_343_chunk  (cost=0.00..248.47 rows=8847 width=8) (actual time=0.005..1.066 rows=8760 loops=1)
+                     ->  Partial Aggregate  (cost=162.35..162.36 rows=1 width=8) (actual time=1.661..1.661 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_316_chunk  (cost=0.00..149.08 rows=5308 width=8) (actual time=0.012..1.290 rows=8448 loops=1)
+                     ->  Partial Aggregate  (cost=162.35..162.36 rows=1 width=8) (actual time=0.851..0.852 rows=1 loops=1)
+                           ->  Parallel Seq Scan on _hyper_17_344_chunk  (cost=0.00..149.08 rows=5308 width=8) (actual time=0.010..0.620 rows=5032 loops=1)
+ Planning Time: 3.292 ms
+ Execution Time: 15.185 ms
+(66 rows)
 
