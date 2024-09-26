@@ -23,6 +23,12 @@ docker exec timeseries_postgres psql -U test -d timeseries_benchmark \
 
 
 # ------------------------------------------------
+
+echo " ~ timescaledb version" >> read_test.txt
+docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c \
+    "SELECT default_version, installed_version FROM pg_available_extensions where name = 'timescaledb';" >> read_test.txt
+
+
 echo "  * timescaledb compressed -> select with limit" >> read_test.txt
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark -c "SELECT compress_chunk(c) from show_chunks('data_objects') c;"
 docker exec timeseries_timescaledb psql -U test -d timeseries_benchmark \

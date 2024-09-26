@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: test
 
   timeseries_timescaledb:
-    image: timescale/timescaledb-ha:pg16
+    image: timescale/timescaledb:latest-pg16
     container_name: timeseries_timescaledb
     ports:
       - "5553:5432"  # Mapping PostgreSQL port to 5553 on your local machine

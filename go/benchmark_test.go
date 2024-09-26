@@ -32,7 +32,7 @@ func BenchmarkTimeseries(b *testing.B) {
 	}
 	defer dbMysql.Close()
 
-	NUM_OBJECTS := 250_000
+	NUM_OBJECTS := 100_000
 	UPDATE_AND_READ_LIMIT := 4_000
 	fake := db.GenerateFakeData(NUM_OBJECTS)
 
