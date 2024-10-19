@@ -1,6 +1,6 @@
 ## Time series database benchmarking
 
-The following project tries to benchmark the following methods on 3 database instances:
+The following project runs benchmarks for the following databases:
 
 - mysql
 - mongodb
@@ -11,7 +11,7 @@ Each database instance is ran through docker and uses the non-default ports to a
 
 **NOTE.** Create an issue if you see a mistake or have a suggestion.
 
-The following methods are benchmarked:
+Benchmarked methods:
 
 - insert x rows (aka upserts on empty table, with indexes)
 - upsert single row at a time
@@ -35,6 +35,8 @@ The data format for all of the tables is the same (excluding the id field betwee
 Upserts are done using an `start_time`, `interval` and `area` filter.
 
 The same data chunks get inserted into all of the databases.
+
+As the benchmark results between timescale and postgres did not match the results of the official timescale [blogpost](https://www.timescale.com/blog/postgresql-timescaledb-1000x-faster-queries-90-data-compression-and-much-more/), I asked for help / validation on [reddit](https://www.reddit.com/r/PostgreSQL/comments/1ftnlu3/native_postgresql_version_faster_than_timescaledb/).
 
 ## Commands
 
