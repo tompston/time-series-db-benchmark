@@ -46,7 +46,7 @@ var (
 func GenerateFakeData(numObjects int) []DataObject {
 	rows := make([]DataObject, numObjects)
 
-	for i := 0; i < numObjects; i++ {
+	for i := range numObjects {
 		now := time.Now().UTC()
 		startTime := BaseTime.Add(time.Duration(i) * time.Hour)
 

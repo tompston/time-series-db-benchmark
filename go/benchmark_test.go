@@ -28,9 +28,14 @@ func BenchmarkTimeseries(b *testing.B) {
 
 	dbMysql, err := db.NewMySQLDB("mysql", "localhost", db.PORT_MYSQL, db.DB_USERNAME, db.DB_PASSWORD, db.DB_NAME)
 	if err != nil {
-		b.Fatalf(err.Error())
+		b.Fatalf("Error: %v", err)
 	}
 	defer dbMysql.Close()
+
+	duckDb, err := db.NewDuckDB("duckdb", "./duckdb.db")
+	if err != nil {
+		b.Fatalf("Error: %v", err)
+	}
 
 	NUM_OBJECTS := 100_000
 	UPDATE_AND_READ_LIMIT := 4_000
@@ -41,6 +46,7 @@ func BenchmarkTimeseries(b *testing.B) {
 	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
 	dbs = append(dbs, pgTimescale)
+	dbs = append(dbs, duckDb)
 
 	// Initialize all of the dbs only once
 	for _, dbInstance := range dbs {
