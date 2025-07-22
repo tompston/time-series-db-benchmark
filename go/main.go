@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	"timeseries-benchmark/db"
 )
 
@@ -36,16 +37,25 @@ func run() error {
 	// }
 	// defer dbMysql.Close()
 
+	duckDb, err := db.NewDuckDB("duckdb", "./duckdb.db")
+	if err != nil {
+		return err
+	}
+	defer duckDb.Close()
+
 	var dbs []db.Database
-	// dbs = append(dbs, mongo)
+	dbs = append(dbs, mongo)
 	dbs = append(dbs, pgNative)
-	dbs = append(dbs, pgTimescale)
+	dbs = append(dbs, duckDb)
+	// dbs = append(dbs, pgTimescale)
+
+	// dbs = append(dbs, pgTimescale)
 	// dbs = append(dbs, dbMysql)
 
 	for _, dbInstance := range dbs {
-		if err := dbInstance.Setup(); err != nil {
-			return err
-		}
+		// if err := dbInstance.Setup(); err != nil {
+		// 	return err
+		// }
 
 		// fake := db.GenerateFakeData(100)
 		// if err := dbInstance.UpsertSingle(fake); err != nil {
@@ -56,17 +66,15 @@ func run() error {
 		// 	return err
 		// }
 
-		// _, err = dbInstance.GetOrderedWithLimit(100)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// size, err := dbInstance.TableSizeInKB()
-		// if err != nil {
-		// 	return err
-		// }
-
-		// log.Printf("Table size: %v KB", size)
+		now := time.Now()
+		data, err := dbInstance.GetOrderedWithLimit(2_000)
+		if err != nil {
+			return err
+		}
+		// calculate the rows per millisecond
+		elapsed := time.Since(now)
+		rpms := float64(len(data)) / float64(elapsed.Milliseconds())
+		log.Printf("Rows per millisecond for %s: %.2f", dbInstance.GetName(), rpms)
 	}
 
 	return nil

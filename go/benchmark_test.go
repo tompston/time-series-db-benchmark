@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"testing"
-	"time"
 	"timeseries-benchmark/db"
 )
 
@@ -114,9 +113,9 @@ func BenchmarkTimeseries(b *testing.B) {
 		})
 	}
 
-	sleepTime := 60 * time.Second
-	b.Logf("sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
-	time.Sleep(sleepTime)
+	// sleepTime := 30 * time.Second
+	// b.Logf("sleeping for %v sec to get the correct mongodb collection storage size\n", sleepTime.Seconds())
+	// time.Sleep(sleepTime)
 
 	b.Logf(" * storage size for %v rows", NUM_OBJECTS)
 	for _, dbInstance := range dbs {

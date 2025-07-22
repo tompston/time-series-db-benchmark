@@ -1,2 +1,4 @@
 
 .DS_Store
+duckdb.db
+duckdb.db.wal
