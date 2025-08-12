@@ -13,8 +13,7 @@ type DuckDB struct {
 }
 
 func NewDuckDB(name, filepath string) (*DuckDB, error) {
-	connStr := filepath // e.g., ":memory:" or "./duckdb.db"
-	db, err := sql.Open("duckdb", connStr)
+	db, err := sql.Open("duckdb", filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open DuckDB: %v", err)
 	}
@@ -128,8 +127,5 @@ func (d *DuckDB) GetOrderedWithLimit(limit int) ([]DataObject, error) {
 }
 
 func (d *DuckDB) TableSizeInKB() (int, error) {
-	// DuckDB does not yet expose table size in a convenient way like Postgres
-	// We could estimate via PRAGMA or skip actual size for benchmark purposes
-	// Dummy response for compatibility
 	return 0, nil
 }
